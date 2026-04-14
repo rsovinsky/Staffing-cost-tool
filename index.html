@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Staffing Cost Planner</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+3:wght@300;400;500;600&display=swap');
+
+  :root {
+    --ocean: #111111;
+    --teal: #333333;
+    --seafoam: #666666;
+    --sand: #f7f7f7;
+    --kelp: #222222;
+    --stone: #888888;
+    --white: #ffffff;
+    --ink: #111111;
+    --accent: #333333;
+    --light-teal: #f0f0f0;
+    --border: #cccccc;
+    --warn: #111111;
+    --success: #333333;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Source Sans 3', sans-serif;
+    background: var(--sand);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  /* ─── Header ─── */
+  header {
+    background: #111111;
+    color: var(--white);
+    padding: 28px 40px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  header::before {
+    content: '';
+    position: absolute;
+    right: -60px; top: -80px;
+    width: 320px; height: 320px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+  }
+  header::after {
+    content: '';
+    position: absolute;
+    right: 60px; bottom: -100px;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.04);
+  }
+  .header-inner { position: relative; z-index: 1; }
+
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 4px;
+  }
+  header p {
+    font-size: 13px;
+    color: rgba(255,255,255,0.65);
+    font-weight: 300;
+  }
+
+  /* ─── Main layout ─── */
+  .main { max-width: 1200px; margin: 0 auto; padding: 32px 24px 60px; }
+
+  /* ─── Org settings bar ─── */
+  .settings-bar {
+    background: #111111;
+    border-radius: 10px;
+    padding: 16px 24px;
+    margin-bottom: 24px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    align-items: flex-end;
+  }
+  .settings-bar label { color: rgba(255,255,255,0.7); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; display: block; margin-bottom: 5px; }
+  .settings-bar select, .settings-bar input[type="number"] {
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 6px;
+    color: white;
+    padding: 7px 10px;
+    font-size: 13px;
+    font-family: 'Source Sans 3', sans-serif;
+    width: 160px;
+  }
+  .settings-bar select option { background: var(--ocean); }
+  .settings-bar .setting-group { display: flex; flex-direction: column; }
+  .settings-bar .hint { color: rgba(255,255,255,0.45); font-size: 11px; margin-top: 3px; }
+
+  /* ─── Fiscal year selector ─── */
+  .fy-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .fy-bar label { font-size: 13px; color: var(--stone); font-weight: 500; }
+  .fy-bar input { padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; width: 100px; font-family: inherit; background: white; color: var(--ink); }
+
+  /* ─── Positions table ─── */
+  .table-wrap { overflow-x: auto; margin-bottom: 16px; }
+
+  table.positions {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(26,74,94,0.08);
+    min-width: 900px;
+  }
+  table.positions thead {
+    background: var(--ocean);
+    color: white;
+  }
+  table.positions thead th {
+    padding: 12px 10px;
+    font-size: 11px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    font-weight: 500;
+    text-align: left;
+    white-space: nowrap;
+  }
+  table.positions thead th:last-child { text-align: center; }
+
+  table.positions tbody tr { border-bottom: 1px solid #edf2f5; transition: background 0.15s; }
+  table.positions tbody tr:last-child { border-bottom: none; }
+  table.positions tbody tr:hover { background: var(--light-teal); }
+  table.positions tbody tr.contractor-row { background: #fafaf8; }
+  table.positions tbody tr.contractor-row:hover { background: #f3f3ee; }
+
+  table.positions td { padding: 10px 8px; vertical-align: middle; }
+
+  table.positions td input[type="text"],
+  table.positions td input[type="number"],
+  table.positions td select {
+    width: 100%;
+    padding: 7px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: 'Source Sans 3', sans-serif;
+    background: white;
+    color: var(--ink);
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  table.positions td input:focus,
+  table.positions td select:focus {
+    outline: none;
+    border-color: var(--teal);
+    box-shadow: 0 0 0 3px rgba(42,143,163,0.12);
+  }
+  table.positions td.num { text-align: right; font-variant-numeric: tabular-nums; font-size: 13px; }
+  table.positions td.total-col { font-weight: 600; color: var(--ocean); font-size: 13px; text-align: right; }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .badge-ft { background: #e8e8e8; color: #111111; }
+  .badge-pt { background: #e8e8e8; color: #333333; }
+  .badge-sea { background: #e8e8e8; color: #555555; }
+  .badge-con { background: #f3f4f6; color: #6b7280; }
+
+  .btn-delete {
+    background: none; border: none; cursor: pointer;
+    color: #ccc; font-size: 18px; padding: 4px 8px;
+    border-radius: 4px; transition: color 0.15s, background 0.15s;
+    display: block; margin: 0 auto;
+  }
+  .btn-delete:hover { color: var(--warn); background: #fef2f2; }
+
+  .btn-add {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--kelp); color: white;
+    border: none; border-radius: 8px;
+    padding: 10px 20px; font-size: 13px; font-weight: 600;
+    cursor: pointer; font-family: 'Source Sans 3', sans-serif;
+    letter-spacing: 0.3px; transition: background 0.15s, transform 0.1s;
+  }
+  .btn-add:hover { background: #2d4335; transform: translateY(-1px); }
+
+  /* ─── Monthly breakdown ─── */
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    color: #111111;
+    margin: 36px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #cccccc;
+  }
+
+  .monthly-wrap { overflow-x: auto; margin-bottom: 16px; }
+
+  table.monthly {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(26,74,94,0.08);
+    min-width: 1000px;
+    font-size: 12px;
+  }
+  table.monthly thead tr:first-child { background: var(--ocean); color: white; }
+  table.monthly thead tr:nth-child(2) { background: #dddddd; color: #111111; font-size: 10px; }
+  table.monthly thead th { padding: 9px 8px; text-align: right; white-space: nowrap; font-weight: 500; }
+  table.monthly thead th:first-child { text-align: left; }
+  table.monthly thead th.month-head { min-width: 72px; }
+
+  table.monthly tbody tr { border-bottom: 1px solid #edf2f5; }
+  table.monthly tbody tr:last-child.total-row { border-top: 2px solid #111111; background: #f0f0f0; font-weight: 600; color: #111111; }
+  table.monthly tbody td { padding: 8px 8px; text-align: right; font-variant-numeric: tabular-nums; }
+  table.monthly tbody td:first-child { text-align: left; font-weight: 500; color: var(--ink); }
+  table.monthly tbody td.zero { color: #bbb; }
+
+  /* ─── Summary cards ─── */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .card {
+    background: white;
+    border-radius: 10px;
+    padding: 20px 20px 16px;
+    box-shadow: 0 2px 12px rgba(26,74,94,0.08);
+    border-top: 4px solid var(--teal);
+  }
+  .card.highlight { border-top-color: #111111; }
+  .card-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--stone); font-weight: 600; margin-bottom: 6px; }
+  .card-value { font-family: 'Playfair Display', serif; font-size: 26px; color: var(--ocean); font-weight: 700; }
+  .card.highlight .card-value { color: #111111; }
+  .card-sub { font-size: 11px; color: var(--stone); margin-top: 4px; }
+
+  /* ─── Notes / disclaimer ─── */
+  .disclaimer {
+    background: #f5f5f5;
+    border: 1px solid #cccccc;
+    border-radius: 8px;
+    padding: 14px 18px;
+    font-size: 12px;
+    color: #444444;
+    margin-top: 24px;
+    line-height: 1.6;
+  }
+  .disclaimer strong { color: #92400e; }
+
+  .tax-rates-note {
+    background: #f0f0f0;
+    border: 1px solid #cccccc;
+    border-radius: 8px;
+    padding: 14px 18px;
+    font-size: 12px;
+    color: #111111;
+    margin-bottom: 24px;
+    line-height: 1.7;
+  }
+  .tax-rates-note strong { font-weight: 600; }
+  .tax-rates-note .rate-grid { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-top: 8px; }
+  .tax-rates-note .rate-item { font-size: 12px; }
+  .rate-label { color: var(--stone); }
+
+  /* ─── Buttons row ─── */
+  .actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 24px; }
+  .btn-export {
+    background: var(--ocean); color: white;
+    border: none; border-radius: 8px;
+    padding: 10px 20px; font-size: 13px; font-weight: 600;
+    cursor: pointer; font-family: 'Source Sans 3', sans-serif;
+    transition: background 0.15s;
+  }
+  .btn-export:hover { background: #123444; }
+  .btn-clear {
+    background: white; color: var(--stone);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 20px; font-size: 13px;
+    cursor: pointer; font-family: 'Source Sans 3', sans-serif;
+    transition: border-color 0.15s;
+  }
+  .btn-clear:hover { border-color: var(--warn); color: var(--warn); }
+
+  @media (max-width: 600px) {
+    header { padding: 20px; }
+    header h1 { font-size: 22px; }
+    .main { padding: 20px 12px 40px; }
+    .settings-bar { padding: 14px 16px; }
+  }
+
+  @media print {
+    * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+
+    body { background: white; }
+    header { margin-bottom: 16px; }
+
+    /* Hide interactive controls */
+    .btn-add, .btn-delete, .actions, .settings-bar { display: none !important; }
+
+    /* Remove scroll containers so full tables print */
+    .table-wrap, .monthly-wrap { overflow: visible !important; }
+
+    .main { padding: 0 8px; max-width: 100%; }
+
+    /* Make tables full width and readable */
+    table.positions, table.monthly {
+      width: 100% !important;
+      min-width: 0 !important;
+      font-size: 9pt;
+      box-shadow: none;
+      border: 1px solid #ccc;
+    }
+    table.positions thead, table.monthly thead tr:first-child {
+      background: #111111 !important;
+      color: white !important;
+    }
+    table.positions th, table.monthly th,
+    table.positions td, table.monthly td {
+      padding: 5px 5px !important;
+      font-size: 8.5pt;
+    }
+
+    /* Summary cards in a single row */
+    .cards {
+      display: flex !important;
+      flex-wrap: nowrap !important;
+      gap: 6px !important;
+      margin-bottom: 16px !important;
+    }
+    .card {
+      flex: 1 !important;
+      padding: 10px 8px !important;
+      box-shadow: none !important;
+      border: 1px solid #ccc !important;
+      page-break-inside: avoid;
+    }
+    .card-value { font-size: 16pt !important; }
+
+    /* Tax rates note */
+    .tax-rates-note { margin-bottom: 12px; font-size: 8pt; }
+
+    /* Section title */
+    .section-title { font-size: 14pt; margin: 12px 0 8px; }
+
+    /* Disclaimer smaller */
+    .disclaimer { font-size: 7.5pt; margin-top: 12px; }
+
+    /* Force landscape for wide tables */
+    @page { size: landscape; margin: 0.5in; }
+
+    /* Avoid page breaks inside rows */
+    tr { page-break-inside: avoid; }
+    thead { display: table-header-group; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <h1>Staffing Cost Planner</h1>
+    <p>Washington State employer — 2026 tax rates &amp; sick leave accrual</p>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- Org settings -->
+  <div class="settings-bar">
+    <div class="setting-group">
+      <label>Fiscal Year Start</label>
+      <select id="fyMonth">
+        <option value="0">January</option>
+        <option value="1">February</option>
+        <option value="2">March</option>
+        <option value="3">April</option>
+        <option value="4">May</option>
+        <option value="5">June</option>
+        <option value="6" selected>July</option>
+        <option value="7">August</option>
+        <option value="8">September</option>
+        <option value="9">October</option>
+        <option value="10">November</option>
+        <option value="11">December</option>
+      </select>
+    </div>
+    <div class="setting-group">
+      <label>Fiscal Year</label>
+      <input type="number" id="fyYear" value="2026" min="2024" max="2030" style="width:90px">
+    </div>
+    <div class="setting-group">
+      <label>WA SUTA Rate (%)</label>
+      <input type="number" id="sutaRate" value="1.00" step="0.01" min="0" max="6.02" style="width:90px">
+      <span class="hint">New employer: 1.0%</span>
+    </div>
+    <div class="setting-group">
+      <label>L&amp;I Rate (% of payroll)</label>
+      <input type="number" id="lniRate" value="1.50" step="0.01" min="0" max="10" style="width:90px">
+      <span class="hint">Avg 2026: ~1.50%</span>
+    </div>
+    <div class="setting-group">
+      <label>Org size</label>
+      <select id="orgSize">
+        <option value="small" selected>&lt; 50 employees</option>
+        <option value="large">50+ employees</option>
+      </select>
+      <span class="hint">Affects PFML employer share</span>
+    </div>
+  </div>
+
+  <!-- Tax rates reference -->
+  <div class="tax-rates-note">
+    <strong>2026 Washington Employer Tax Rates in Use</strong>
+    <div class="rate-grid" id="rateDisplay"></div>
+  </div>
+
+  <!-- Positions table -->
+  <div class="table-wrap">
+    <table class="positions" id="posTable">
+      <thead>
+        <tr>
+          <th style="min-width:36px"></th>
+          <th style="min-width:140px">Position Title</th>
+          <th style="min-width:120px">Staff Type</th>
+          <th style="min-width:60px" title="Number of employees">#</th>
+          <th style="min-width:100px">Wage / Hr</th>
+          <th style="min-width:90px">Hrs / Wk</th>
+          <th style="min-width:100px">Benefits / Mo</th>
+          <th style="min-width:110px" title="Wage/Hr x 2080">Ann. FT Wage</th>
+          <th style="min-width:110px" title="Benefits/Mo x 12">Ann. Benefit</th>
+          <th style="min-width:110px">Start Date</th>
+          <th style="min-width:70px">End Mo</th>
+          <th style="min-width:90px" title="Gross Wages">Wages / Yr</th>
+          <th style="min-width:90px" title="All employer taxes">Payroll Tax</th>
+          <th style="min-width:80px" title="Sick leave accrual cost">Sick Leave</th>
+          <th style="min-width:100px">Total Cost / Yr</th>
+          <th style="min-width:36px"></th>
+        </tr>
+      </thead>
+      <tbody id="posBody"></tbody>
+    </table>
+  </div>
+
+  <div style="margin-bottom:24px">
+    <button class="btn-add" onclick="addRow()">＋ Add Position</button>
+  </div>
+
+  <!-- Summary cards -->
+  <div class="cards" id="cards"></div>
+
+  <!-- Monthly breakdown -->
+  <div class="section-title">Monthly Budget Breakdown</div>
+  <div class="monthly-wrap">
+    <table class="monthly" id="monthlyTable"></table>
+  </div>
+
+  <div class="actions">
+    <button class="btn-export" onclick="exportCSV()">Export CSV</button>
+    <button class="btn-export" onclick="window.print()" style="background:var(--kelp)">Print / PDF</button>
+    <button class="btn-clear" onclick="clearAll()">Clear All</button>
+  </div>
+
+  <div class="disclaimer">
+    <strong>Important:</strong> This tool provides planning estimates only. Payroll taxes should be verified against current IRS, Washington ESD, and L&amp;I guidance before budgeting. SUTA rates are experience-rated and vary by employer. L&amp;I workers' compensation rates vary by risk classification and are charged per hour in Washington (converted here to approximate % of payroll for planning). Sick leave accrual shown represents the employer's cost of accrued leave (1 hr per 40 hrs worked at the employee's wage rate). Contractors (1099) are not subject to employer payroll taxes or mandatory sick leave. Consult a payroll professional for final compliance.
+  </div>
+
+</div>
+
+<script>
+// ─── Constants ───────────────────────────────────────────────
+const TAX = {
+  ficaSS: 0.062,        // Social Security employer share
+  ficaMed: 0.0145,      // Medicare employer share
+  ssWageBase: 184500,
+  futa: 0.006,          // Net FUTA after credit
+  futaWageBase: 7000,
+  pfmlTotal: 0.0113,    // WA PFML total rate
+  pfmlEmployerPct: 0.2857, // employer share (50+ employees only)
+  pfmlWageBase: 184500,
+  waCares: 0.0058,      // WA Cares Fund (employee only, employer collects)
+  sutaWageBase: 78200,
+};
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const TYPE_LABELS = { ft:'Full-Time', pt:'Part-Time', sea:'Seasonal/Temp', con:'Contractor (1099)' };
+const BADGE_CLASS = { ft:'badge-ft', pt:'badge-pt', sea:'badge-sea', con:'badge-con' };
+
+let rows = [];
+let nextId = 1;
+
+// ─── Row data model ─────────────────────────────────────────
+function newRow() {
+  const fyM = getFyMonth(); // 0-based
+  const fyY = getFyYear();
+  const startDate = fyY + '-' + String(fyM+1).padStart(2,'0') + '-01';
+  return {
+    id: nextId++,
+    title: '',
+    type: 'ft',
+    count: 1,
+    wage: '',
+    hrs: 40,
+    benefits: 0,
+    startDate: startDate,
+    endMo: 12,
+  };
+}
+
+function addRow(preset) {
+  const r = preset || newRow();
+  rows.push(r);
+  renderTable();
+  recalc();
+  requestAnimationFrame(() => {
+    const tr = document.querySelector(`tr[data-id="${r.id}"]`);
+    if (!tr) return;
+    if (preset) {
+      // Template already has title — focus wage
+      const wage = tr.querySelector('input[type="number"]');
+      if (wage) wage.focus();
+    } else {
+      // Show inline template picker inside the title cell
+      showTitlePicker(r.id, tr);
+    }
+  });
+}
+
+function showTitlePicker(rowId, tr) {
+  const titleCell = tr.querySelector('td:nth-child(2)');
+  if (!titleCell) return;
+  // Replace the text input temporarily with a styled select
+  const origInput = titleCell.querySelector('input');
+  if (!origInput) return;
+
+  const sel = document.createElement('select');
+  sel.style.cssText = 'width:100%;padding:7px 8px;border:2px solid var(--teal);border-radius:6px;font-size:13px;font-family:inherit;background:white;color:var(--ink);box-shadow:0 0 0 3px rgba(42,143,163,0.15)';
+
+  // Blank prompt option
+  const prompt = document.createElement('option');
+  prompt.value = ''; prompt.textContent = '— Select position or type title —';
+  sel.appendChild(prompt);
+
+  // Add "Custom (type title)" option first
+  const custom = document.createElement('option');
+  custom.value = '__custom__'; custom.textContent = '✏  Custom title...';
+  sel.appendChild(custom);
+
+  // Divider-like disabled option
+  const div = document.createElement('option');
+  div.disabled = true; div.textContent = '──────────────';
+  sel.appendChild(div);
+
+  TEMPLATES.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t.title;
+    opt.dataset.type = t.type;
+    opt.textContent = (t.type === 'con' ? '1099  ' : '') + t.title;
+    sel.appendChild(opt);
+  });
+
+  titleCell.replaceChild(sel, origInput);
+  sel.focus();
+
+  function commit(title, type) {
+    const r = rows.find(r => r.id === rowId);
+    if (!r) return;
+    // Restore text input
+    titleCell.replaceChild(origInput, sel);
+    if (title && title !== '__custom__') {
+      origInput.value = title;
+      r.title = title;
+      if (type) { r.type = type; }
+    }
+    renderTable();
+    recalc();
+    // Focus wage field after selection
+    requestAnimationFrame(() => {
+      const newTr = document.querySelector(`tr[data-id="${rowId}"]`);
+      if (!newTr) return;
+      if (!title || title === '__custom__') {
+        const ti = newTr.querySelector('input[type="text"]');
+        if (ti) { ti.focus(); }
+      } else {
+        const wage = newTr.querySelectorAll('input[type="number"]')[1];
+        if (wage) wage.focus();
+      }
+    });
+  }
+
+  sel.addEventListener('change', () => {
+    const opt = sel.options[sel.selectedIndex];
+    const type = opt.dataset.type || 'ft';
+    commit(sel.value, type);
+  });
+
+  sel.addEventListener('blur', () => {
+    // If user clicks away without selecting, restore input
+    setTimeout(() => {
+      if (document.activeElement !== sel) commit('', '');
+    }, 150);
+  });
+}
+
+function deleteRow(id) {
+  rows = rows.filter(r => r.id !== id);
+  renderTable();
+  recalc();
+}
+
+function clearAll() {
+  if (!confirm('Clear all positions?')) return;
+  rows = [];
+  renderTable();
+  recalc();
+}
+
+// ─── Calculations ───────────────────────────────────────────
+function getSuta() { return parseFloat(document.getElementById('sutaRate').value) / 100 || 0.01; }
+function getLni()  { return parseFloat(document.getElementById('lniRate').value)  / 100 || 0.015; }
+function isLarge() { return document.getElementById('orgSize').value === 'large'; }
+function getFyMonth() { return parseInt(document.getElementById('fyMonth').value); }
+function getFyYear()  { return parseInt(document.getElementById('fyYear').value) || 2026; }
+
+// Returns array of 12 month indices (0=Jan..11=Dec) for the FY
+function getFyMonthOrder() {
+  const start = getFyMonth();
+  return Array.from({length:12}, (_, i) => (start + i) % 12);
+}
+
+// Calc annual totals for a row
+function calcRow(r) {
+  const wage = parseFloat(r.wage);
+  const hrs  = parseFloat(r.hrs);
+  if (!wage || !hrs || isNaN(wage) || isNaN(hrs)) return { wages:0, taxes:0, sick:0, benefits:0, total:0, annualFTWage:0, annualBenefit:0, months: Array(12).fill(0) };
+  const ben   = parseFloat(r.benefits) || 0;
+  const count = Math.max(0, parseInt(r.count) ?? 1);
+  // Parse start month from date string
+  const startDate = r.startDate || '';
+  const startMoParsed = startDate ? parseInt(startDate.split('-')[1]) : 1;
+  const start = Math.max(1, Math.min(12, startMoParsed));
+  const end   = Math.max(1, Math.min(12, parseInt(r.endMo) || 12));
+  // Annualized figures (single employee, full year)
+  const annualFTWage = wage * 2080;
+  const annualBenefit = ben * 12;
+
+  // Parse start day for pro-ration of first month
+  const startDay = startDate ? (parseInt(startDate.split('-')[2]) || 1) : 1;
+  const startYear = startDate ? (parseInt(startDate.split('-')[0]) || new Date().getFullYear()) : new Date().getFullYear();
+  // Days in start month: new Date(year, month, 0) gives last day of previous month
+  const daysInStartMonth = new Date(startYear, start, 0).getDate();
+  const startProration = (daysInStartMonth - startDay + 1) / daysInStartMonth;
+
+  // Build list of active calendar month indices (0-based), supporting wrap-around (e.g. Oct-Mar)
+  const activeMonths = [];
+  if (end >= start) {
+    for (let m = start; m <= end; m++) activeMonths.push(m - 1);
+  } else {
+    for (let m = start; m <= 12; m++) activeMonths.push(m - 1);
+    for (let m = 1;     m <= end; m++) activeMonths.push(m - 1);
+  }
+
+  const hoursPerMonth = hrs * 4.333;
+  const grossPerMonth = wage * hoursPerMonth;
+
+  // Build monthly gross array with pro-ration on first month
+  const mo = Array(12).fill(0);
+  activeMonths.forEach((mi, i) => {
+    mo[mi] = i === 0 ? grossPerMonth * startProration : grossPerMonth;
+  });
+
+  // Effective months for annual totals (first month counts as fraction)
+  const numMonths = activeMonths.length > 0 ? (startProration + activeMonths.length - 1) : 0;
+  const annualGross = grossPerMonth * numMonths;
+
+  if (r.type === 'con') {
+    activeMonths.forEach((mi, i) => {
+      const gpm = i === 0 ? grossPerMonth * startProration : grossPerMonth;
+      mo[mi] = (gpm + ben) * count;
+    });
+    const wages = annualGross * count;
+    const benefits = ben * numMonths * count;
+    return { wages, taxes: 0, sick: 0, benefits, total: wages + benefits, annualFTWage, annualBenefit, months: mo };
+  }
+
+  // ─── Payroll taxes (annual approximation) ───
+  const suta     = Math.min(annualGross, TAX.sutaWageBase) * getSuta();
+  const futa     = Math.min(annualGross, TAX.futaWageBase) * TAX.futa;
+  const ficaSS   = Math.min(annualGross, TAX.ssWageBase)   * TAX.ficaSS;
+  const ficaMed  = annualGross * TAX.ficaMed;
+
+  // PFML employer share only if 50+ employees
+  const pfmlEmployer = isLarge()
+    ? Math.min(annualGross, TAX.pfmlWageBase) * TAX.pfmlTotal * TAX.pfmlEmployerPct
+    : 0;
+
+  // L&I (per hour in WA, approximated as % of payroll for planning)
+  const lni = annualGross * getLni();
+
+  const taxes = (suta + futa + ficaSS + ficaMed + pfmlEmployer + lni) * count;
+
+  // Sick leave: 1 hr per 40 hrs worked, at wage rate (per employee * count)
+  const annualHrs  = hoursPerMonth * numMonths;
+  const sickHrs    = annualHrs / 40;
+  const sick       = sickHrs * wage * count;
+
+  const wages      = annualGross * count;
+  const benefits   = ben * numMonths * count;
+  const total      = wages + taxes + sick + benefits;
+
+  // Monthly distribution - first month pro-rated, rest full
+  const taxPerMo  = numMonths > 0 ? taxes / numMonths : 0;
+  const sickPerMo = numMonths > 0 ? sick  / numMonths : 0;
+  activeMonths.forEach((mi, i) => {
+    const gpm = i === 0 ? grossPerMonth * startProration : grossPerMonth;
+    mo[mi] = (gpm + ben) * count + taxPerMo + sickPerMo;
+  });
+
+  return { wages, taxes, sick, benefits, total, annualFTWage, annualBenefit, months: mo };
+}
+
+// ─── Render positions table ──────────────────────────────────
+function renderTable() {
+  const tbody = document.getElementById('posBody');
+  tbody.innerHTML = '';
+  rows.forEach(r => {
+    const calc = calcRow(r);
+    const isCon = r.type === 'con';
+    const tr = document.createElement('tr');
+    if (isCon) tr.classList.add('contractor-row');
+    tr.dataset.id = r.id;
+    tr.innerHTML = `
+      <td><button class="btn-delete" onclick="deleteRow(${r.id})" title="Remove row">×</button></td>
+      <td><input type="text" placeholder="Position title" value="${esc(r.title)}" onchange="setField(${r.id},'title',this.value)" onkeyup="setField(${r.id},'title',this.value)"></td>
+      <td>
+        <select onchange="setField(${r.id},'type',this.value)" style="font-size:12px">
+          <option value="ft"  ${r.type==='ft' ?'selected':''}>Full-Time</option>
+          <option value="pt"  ${r.type==='pt' ?'selected':''}>Part-Time</option>
+          <option value="sea" ${r.type==='sea'?'selected':''}>Seasonal/Temp</option>
+          <option value="con" ${r.type==='con'?'selected':''}>Contractor (1099)</option>
+        </select>
+      </td>
+      <td><input type="number" placeholder="0" value="${r.count!=null?r.count:1}" min="0" max="99" step="1" oninput="setField(${r.id},'count',this.value)" onchange="setField(${r.id},'count',this.value)" style="text-align:center;width:100%"></td>
+      <td><input type="number" placeholder="0.00" value="${r.wage}" min="0" step="0.01" oninput="setField(${r.id},'wage',this.value)" onchange="setField(${r.id},'wage',this.value)" style="text-align:right"></td>
+      <td><input type="number" placeholder="40" value="${r.hrs}" min="0" max="168" step="0.5" oninput="setField(${r.id},'hrs',this.value)" onchange="setField(${r.id},'hrs',this.value)" style="text-align:right"></td>
+      <td><input type="number" placeholder="0" value="${r.benefits}" min="0" step="10" oninput="setField(${r.id},'benefits',this.value)" onchange="setField(${r.id},'benefits',this.value)" style="text-align:right"></td>
+      <td class="num cell-annftwage" title="Wage/Hr x 2080 (single FTE)">${fmt(calc.annualFTWage)}</td>
+      <td class="num cell-annbenefit" title="Benefits/Mo x 12 (single FTE)">${fmt(calc.annualBenefit)}</td>
+      <td><input type="date" value="${r.startDate||''}" oninput="setField(${r.id},'startDate',this.value)" onchange="setField(${r.id},'startDate',this.value)" style="font-size:12px;padding:5px 4px;border:1px solid var(--border);border-radius:6px;font-family:inherit;color:var(--ink);width:100%"></td>
+      <td>
+        <select onchange="setField(${r.id},'endMo',parseInt(this.value))" style="font-size:12px">
+          ${MONTHS.map((m,i)=>`<option value="${i+1}" ${r.endMo===i+1?'selected':''}>${m}</option>`).join('')}
+        </select>
+      </td>
+      <td class="num cell-wages">${fmt(calc.wages)}</td>
+      <td class="num cell-taxes">${isCon ? '<span style="color:#bbb">—</span>' : fmt(calc.taxes)}</td>
+      <td class="num cell-sick">${isCon ? '<span style="color:#bbb">—</span>' : fmt(calc.sick)}</td>
+      <td class="total-col cell-total">${fmt(calc.total)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function setField(id, field, value, forceRender) {
+  const r = rows.find(r => r.id === id);
+  if (!r) return;
+  r[field] = value;
+  // Only re-render the full table when type changes (affects row styling/columns)
+  // For all other fields, just update calculated display cells in-place
+  if (forceRender || field === 'type') {
+    renderTable();
+  } else {
+    updateRowDisplay(id);
+  }
+  recalc();
+}
+
+// Update only the calculated cells in a row without re-rendering inputs
+function updateRowDisplay(id) {
+  const r = rows.find(r => r.id === id);
+  if (!r) return;
+  const calc = calcRow(r);
+  const isCon = r.type === 'con';
+  const tr = document.querySelector(`tr[data-id="${id}"]`);
+  if (!tr) return;
+  tr.querySelector('.cell-annftwage').innerHTML = fmt(calc.annualFTWage);
+  tr.querySelector('.cell-annbenefit').innerHTML = fmt(calc.annualBenefit);
+  tr.querySelector('.cell-wages').innerHTML = fmt(calc.wages);
+  tr.querySelector('.cell-taxes').innerHTML = isCon ? '<span style="color:#bbb">—</span>' : fmt(calc.taxes);
+  tr.querySelector('.cell-sick').innerHTML = isCon ? '<span style="color:#bbb">—</span>' : fmt(calc.sick);
+  tr.querySelector('.cell-total').innerHTML = fmt(calc.total);
+}
+
+function esc(s) { return (s||'').replace(/"/g,'&quot;'); }
+function fmt(n) {
+  if (!n || isNaN(n)) return '<span class="zero">—</span>';
+  return '$' + n.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+}
+function fmtN(n) {
+  return n ? '$' + n.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,',') : '—';
+}
+
+// ─── Recalc summary & monthly ────────────────────────────────
+function recalc() {
+  // Summary cards
+  let totWages=0, totTax=0, totSick=0, totBen=0, totAll=0;
+  rows.forEach(r => {
+    const c = calcRow(r);
+    totWages += c.wages;
+    totTax   += c.taxes;
+    totSick  += c.sick;
+    totBen   += c.benefits||0;
+    totAll   += c.total;
+  });
+
+  document.getElementById('cards').innerHTML = `
+    <div class="card">
+      <div class="card-label">Total Gross Wages</div>
+      <div class="card-value">${fmtN(totWages)}</div>
+      <div class="card-sub">All positions, full year</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Payroll Taxes</div>
+      <div class="card-value">${fmtN(totTax)}</div>
+      <div class="card-sub">FICA, FUTA, SUTA, PFML, L&amp;I</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Benefits</div>
+      <div class="card-value">${fmtN(totBen)}</div>
+      <div class="card-sub">Monthly benefit amounts</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Sick Leave Accrual</div>
+      <div class="card-value">${fmtN(totSick)}</div>
+      <div class="card-sub">1 hr / 40 hrs worked (WA)</div>
+    </div>
+    <div class="card highlight">
+      <div class="card-label">Total Employer Cost</div>
+      <div class="card-value">${fmtN(totAll)}</div>
+      <div class="card-sub">All-in annual staffing cost</div>
+    </div>
+  `;
+
+  renderMonthly();
+  renderRateDisplay();
+}
+
+// ─── Monthly breakdown table ─────────────────────────────────
+function renderMonthly() {
+  const fyOrder = getFyMonthOrder(); // array of 0-based month indices
+  const tbl = document.getElementById('monthlyTable');
+  if (!rows.length) { tbl.innerHTML = '<tbody><tr><td style="padding:20px;color:#999;font-size:13px">Add positions above to see monthly breakdown.</td></tr></tbody>'; return; }
+
+  // Header
+  let html = '<thead><tr><th>Position</th>';
+  fyOrder.forEach(mi => { html += `<th class="month-head">${MONTHS[mi]}</th>`; });
+  html += '<th>Annual Total</th></tr>';
+  html += '<tr><th></th>';
+  fyOrder.forEach(() => { html += '<th style="font-size:10px;color:#5a7080">Wages+Tax+Sick+Ben</th>'; });
+  html += '<th></th></tr></thead><tbody>';
+
+  // Row totals by month
+  const colTotals = Array(12).fill(0);
+
+  rows.forEach(r => {
+    const c = calcRow(r);
+    const label = r.title || TYPE_LABELS[r.type] || 'Position';
+    html += `<tr><td>${label}</td>`;
+    fyOrder.forEach(mi => {
+      const v = c.months[mi] || 0;
+      colTotals[mi] += v;
+      html += `<td${v===0?' class="zero"':''}>${v>0?'$'+Math.round(v).toLocaleString():'—'}</td>`;
+    });
+    html += `<td style="font-weight:600;color:var(--ocean)">${fmtN(c.total)}</td></tr>`;
+  });
+
+  // Totals row
+  html += '<tr class="total-row"><td>TOTAL</td>';
+  let grandTotal = 0;
+  fyOrder.forEach(mi => {
+    const v = colTotals[mi];
+    grandTotal += v;
+    html += `<td>${v>0?'$'+Math.round(v).toLocaleString():'—'}</td>`;
+  });
+  html += `<td>$${Math.round(grandTotal).toLocaleString()}</td></tr>`;
+  html += '</tbody>';
+  tbl.innerHTML = html;
+}
+
+// ─── Rate display ────────────────────────────────────────────
+function renderRateDisplay() {
+  const large = isLarge();
+  const pfmlEmp = large ? (TAX.pfmlTotal * TAX.pfmlEmployerPct * 100).toFixed(3) : '0 (< 50 ee)';
+  document.getElementById('rateDisplay').innerHTML = `
+    <div class="rate-item"><span class="rate-label">Social Security (employer): </span><strong>6.2%</strong> on first $184,500</div>
+    <div class="rate-item"><span class="rate-label">Medicare (employer): </span><strong>1.45%</strong> unlimited</div>
+    <div class="rate-item"><span class="rate-label">FUTA (net): </span><strong>0.6%</strong> on first $7,000</div>
+    <div class="rate-item"><span class="rate-label">WA SUTA: </span><strong>${(getSuta()*100).toFixed(2)}%</strong> on first $78,200</div>
+    <div class="rate-item"><span class="rate-label">WA PFML (employer): </span><strong>${pfmlEmp}%</strong></div>
+    <div class="rate-item"><span class="rate-label">WA L&amp;I (approx): </span><strong>${(getLni()*100).toFixed(2)}%</strong> of payroll</div>
+    <div class="rate-item"><span class="rate-label">WA Sick Leave: </span><strong>1 hr / 40 hrs</strong> at employee wage</div>
+  `;
+}
+
+// ─── CSV Export ──────────────────────────────────────────────
+function exportCSV() {
+  const fyOrder = getFyMonthOrder();
+  const monthNames = fyOrder.map(mi => MONTHS[mi]);
+  const lines = [];
+  lines.push(['Position','Type','Count','Wage/Hr','Hrs/Wk','Benefits/Mo','Ann. FT Wage (single)','Ann. Benefit (single)','Start Date','End Mo',
+    'Annual Wages','Payroll Taxes','Sick Leave','Benefits Total','Total Cost',
+    ...monthNames.map(m => m + ' Total')].join(','));
+
+  rows.forEach(r => {
+    const c = calcRow(r);
+    const moCols = fyOrder.map(mi => Math.round(c.months[mi]||0));
+    lines.push([
+      `"${r.title || ''}"`,
+      TYPE_LABELS[r.type],
+      r.count||1,
+      r.wage, r.hrs, r.benefits||0,
+      Math.round(c.annualFTWage||0),
+      Math.round(c.annualBenefit||0),
+      r.startDate||'',
+      MONTHS[(r.endMo||12)-1],
+      Math.round(c.wages), Math.round(c.taxes), Math.round(c.sick),
+      Math.round(c.benefits||0), Math.round(c.total),
+      ...moCols
+    ].join(','));
+  });
+
+  // Totals row
+  let totWages=0,totTax=0,totSick=0,totBen=0,totAll=0;
+  const colTot = Array(12).fill(0);
+  rows.forEach(r => {
+    const c = calcRow(r);
+    totWages+=c.wages; totTax+=c.taxes; totSick+=c.sick; totBen+=c.benefits||0; totAll+=c.total;
+    fyOrder.forEach((mi,i) => { colTot[i] += (c.months[mi]||0); });
+  });
+  lines.push(['TOTAL','','','','','','',
+    Math.round(totWages),Math.round(totTax),Math.round(totSick),Math.round(totBen),Math.round(totAll),
+    ...colTot.map(v => Math.round(v))].join(','));
+
+  const blob = new Blob([lines.join('\n')], {type:'text/csv'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `Staffing_Plan_FY${getFyYear()}.csv`; a.click();
+}
+
+// ─── Position Templates ─────────────────────────────────────
+const TEMPLATES = [
+  { title: 'Aquatic Manager',              type: 'ft' },
+  { title: 'Swim Center Assistant Manager',type: 'ft' },
+  { title: 'Community Engagement',         type: 'ft' },
+  { title: 'Customer Service',             type: 'pt' },
+  { title: 'Fitness Director',             type: 'ft' },
+  { title: 'Facility Operations Manager',  type: 'ft' },
+  { title: 'Lifeguard',                    type: 'sea' },
+  { title: 'Head Lifeguard',               type: 'ft' },
+  { title: 'Other Staff',                  type: 'pt' },
+  { title: 'Independent Contractor',       type: 'con' },
+];
+
+
+
+// ─── Settings change listeners ───────────────────────────────
+['fyMonth','fyYear','sutaRate','lniRate','orgSize'].forEach(id => {
+  document.getElementById(id).addEventListener('change', () => { renderTable(); recalc(); });
+});
+
+// ─── Init with one sample row ────────────────────────────────
+recalc();
+</script>
+</body>
+</html>
