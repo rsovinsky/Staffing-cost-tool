@@ -474,8 +474,11 @@
   </div>
 
   <div class="actions">
-    <button class="btn-export" onclick="exportCSV()">Export CSV</button>
-    <button class="btn-export" onclick="window.print()" style="background:var(--kelp)">Print / PDF</button>
+    <button class="btn-export" onclick="savePlan()">Save Plan</button>
+    <button class="btn-export" onclick="document.getElementById('loadInput').click()" style="background:var(--teal)">Load Plan</button>
+    <input type="file" id="loadInput" accept=".json" style="display:none" onchange="loadPlan(this)">
+    <button class="btn-export" onclick="exportCSV()" style="background:#555">Export CSV</button>
+    <button class="btn-export" onclick="window.print()" style="background:#333">Print / PDF</button>
     <button class="btn-clear" onclick="clearAll()">Clear All</button>
   </div>
 
@@ -979,6 +982,56 @@ const TEMPLATES = [
 ];
 
 
+
+// ─── Save / Load Plan ───────────────────────────────────────
+function savePlan() {
+  const settings = {
+    fyMonth: document.getElementById('fyMonth').value,
+    fyYear:  document.getElementById('fyYear').value,
+    sutaRate: document.getElementById('sutaRate').value,
+    lniRate:  document.getElementById('lniRate').value,
+    orgSize:  document.getElementById('orgSize').value,
+  };
+  const plan = { version: 1, saved: new Date().toISOString(), settings, rows };
+  const blob = new Blob([JSON.stringify(plan, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const fy = settings.fyYear || new Date().getFullYear();
+  a.download = `Staffing_Plan_FY${fy}.json`;
+  a.click();
+}
+
+function loadPlan(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const plan = JSON.parse(e.target.result);
+      if (!plan.rows) throw new Error('Invalid plan file');
+
+      // Restore settings
+      if (plan.settings) {
+        const s = plan.settings;
+        if (s.fyMonth  !== undefined) document.getElementById('fyMonth').value  = s.fyMonth;
+        if (s.fyYear   !== undefined) document.getElementById('fyYear').value   = s.fyYear;
+        if (s.sutaRate !== undefined) document.getElementById('sutaRate').value = s.sutaRate;
+        if (s.lniRate  !== undefined) document.getElementById('lniRate').value  = s.lniRate;
+        if (s.orgSize  !== undefined) document.getElementById('orgSize').value  = s.orgSize;
+      }
+
+      // Restore rows, ensuring IDs don't collide
+      rows = plan.rows.map(r => ({ ...r, id: nextId++ }));
+      renderTable();
+      recalc();
+    } catch(err) {
+      alert('Could not load plan: ' + err.message);
+    }
+    // Reset file input so same file can be reloaded if needed
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
 
 // ─── Settings change listeners ───────────────────────────────
 ['fyMonth','fyYear','sutaRate','lniRate','orgSize'].forEach(id => {
